@@ -158,7 +158,7 @@ class PostgresDocker implements Serializable {
     assert image
 
     withDb(dbName) { port, id ->
-      image.withRun("--link ${id}:postgres ${dockerArgs.join(' ')}") {
+      image.inside("--link ${id}:postgres ${dockerArgs.join(' ')}") {
         return body()
       }
     }
