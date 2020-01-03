@@ -73,14 +73,23 @@ class PostgresDocker implements Serializable {
       // a database for us with the given name.
       String port = this.port ?: '1' + getRandomDigitString(4, randomSeed)
       String uid = this.uid ?: script.sh(returnStdout: true, script: 'id -u').trim()
+      
+      //if the jenkins agent is running as root, let postgres run as root as well
+      if (uid != "0") {
+        String switchDockerUser = """
+          RUN useradd --uid ${uid} --user-group ${postgresUser}
+          USER ${postgresUser}
+        """
+      } else {
+        String switchDockerUser = ""
+      }  
       script.writeFile(
         file: 'Dockerfile',
         text: """
           FROM postgres:${version}
-          RUN useradd --uid ${uid} --user-group ${postgresUser}
           ENV POSTGRES_USER=${postgresUser}
           ENV POSTGRES_DB=${dbName}
-          USER ${postgresUser}
+          ${switchDockerUser}
           EXPOSE 5432
           ENTRYPOINT ["/docker-entrypoint.sh", "postgres"]
         """
