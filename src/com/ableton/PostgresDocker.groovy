@@ -65,6 +65,7 @@ class PostgresDocker implements Serializable {
     String pwd = script.pwd()
     String random = getRandomDigitString(8, randomSeed)
     String tempDir = "${script.pwd(tmp: true)}/${script.env.BUILD_ID}/postgres-${random}"
+    String switchDockerUser = ""
     script.dir(tempDir) {
       // Here we create a Dockerfile based on the postgres version, but with a custom UID
       // mapping. Without this, the postgres container runs into all sorts of weird
@@ -75,14 +76,12 @@ class PostgresDocker implements Serializable {
       String uid = this.uid ?: script.sh(returnStdout: true, script: 'id -u').trim()
       
       //if the jenkins agent is running as root, let postgres run as root as well
-      if (uid != "0") {
-        String switchDockerUser = """
+      if (uid != null && uid != "0") {
+        switchDockerUser = """
           RUN useradd --uid ${uid} --user-group ${postgresUser}
           USER ${postgresUser}
         """
-      } else {
-        String switchDockerUser = ""
-      }  
+      }
       script.writeFile(
         file: 'Dockerfile',
         text: """
